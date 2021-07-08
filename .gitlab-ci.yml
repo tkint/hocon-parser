@@ -1,0 +1,49 @@
+variables:
+  NODE_IMAGE: node:lts-alpine
+
+stages:
+  - build
+  - test
+  - publish
+
+.node_base: &node_base
+  image: $NODE_IMAGE
+  cache:
+    key: npm-cache
+    paths:
+      - .npm/
+  before_script:
+    - npm ci --cache .npm --prefer-offline
+
+build:
+  <<: *node_base
+  stage: build
+  artifacts:
+    paths:
+      - dist
+    expire_in: 3 days
+  script:
+    - npm run build
+
+test:
+  <<: *node_base
+  stage: test
+  artifacts:
+    paths:
+      - report
+    reports:
+      junit: report/junit.xml
+    expire_in: 3 days
+    when: always
+  coverage: '/^All files\s*\|\s*(\d+(?:\.\d+)?)/'
+  script:
+    - npm run test
+
+publish:
+  image: $NODE_IMAGE
+  stage: publish
+  when: manual
+  before_script:
+    - npm config set //registry.npmjs.org/:_authToken ${NPM_TOKEN}
+  script:
+    - npm publish

@@ -1,0 +1,15 @@
+module.exports = {
+  a: 'aaa',
+  b: 'bbb',
+  c: 'ccc',
+  d: 'ddd',
+  e: 'eee',
+  f: 'fff',
+  g: 'ggg',
+  h: 'hhh',
+  i: '9ii',
+  j: 'jjj jjj',
+  k: 'kkk kkk',
+  l: 'lll lll',
+  m: 'm   m   m',
+};

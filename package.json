@@ -1,0 +1,40 @@
+{
+  "name": "@tkint/hocon-parser",
+  "version": "1.0.0-alpha",
+  "description": "HOCON parser",
+  "files": [
+    "dist"
+  ],
+  "main": "dist/hocon-parser.umd.js",
+  "module": "dist/hocon-parser.es.js",
+  "exports": {
+    ".": {
+      "import": "./dist/hocon-parser.es.js",
+      "require": "./dist/hocon-parser.umd.js"
+    }
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://gitlab.com/tkint/hocon-parser.git"
+  },
+  "author": "tkint",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://gitlab.com/tkint/hocon-parser/issues"
+  },
+  "homepage": "https://gitlab.com/tkint/hocon-parser",
+  "scripts": {
+    "test": "jest tests --coverage",
+    "build": "vite build"
+  },
+  "devDependencies": {
+    "@types/jest": "^26.0.24",
+    "@types/node": "^16.0.1",
+    "jest": "^27.0.6",
+    "jest-junit": "^12.2.0",
+    "vite": "^2.4.1"
+  }
+}
