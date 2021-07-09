@@ -1,0 +1,11 @@
+{
+  "name": "hocon-parser-node-example",
+  "version": "1.0.0",
+  "main": "test.js",
+  "scripts": {
+    "start": "node index.js"
+  },
+  "dependencies": {
+    "@tkint/hocon-parser": "*"
+  }
+}

@@ -3,3 +3,5 @@ node_modules
 report
 
 .idea
+
+examples/**/package-lock.json

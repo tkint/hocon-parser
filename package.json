@@ -1,12 +1,13 @@
 {
   "name": "@tkint/hocon-parser",
-  "version": "1.0.0-alpha",
+  "version": "1.0.0",
   "description": "HOCON parser",
   "files": [
     "dist"
   ],
   "main": "dist/hocon-parser.umd.js",
   "module": "dist/hocon-parser.es.js",
+  "typings": "dist/index.d.ts",
   "exports": {
     ".": {
       "import": "./dist/hocon-parser.es.js",
@@ -28,13 +29,15 @@
   "homepage": "https://gitlab.com/tkint/hocon-parser",
   "scripts": {
     "test": "jest tests --coverage",
-    "build": "vite build"
+    "build": "vite build && tsc -p tsconfig.json"
   },
   "devDependencies": {
     "@types/jest": "^26.0.24",
     "@types/node": "^16.0.1",
     "jest": "^27.0.6",
     "jest-junit": "^12.2.0",
+    "ts-jest": "^27.0.3",
+    "typescript": "^4.3.5",
     "vite": "^2.4.1"
   }
 }

@@ -1,6 +1,8 @@
 module.exports = {
+  preset: 'ts-jest',
+  testEnvironment: 'node',
   coverageDirectory: 'report',
-  collectCoverageFrom: ['lib/*.js'],
+  collectCoverageFrom: ['lib/*.ts'],
   reporters: [
     'default',
     [

@@ -1,4 +1,4 @@
-const { lexNumber } = require('../lib/main');
+import { lexNumber } from '../lib';
 
 describe('lexNumber', () => {
   describe('OK', () => {

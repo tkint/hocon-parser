@@ -1,0 +1,19 @@
+<html lang="en">
+<head>
+  <title>hocon-parser-browser</title>
+</head>
+
+<body>
+
+<div id="result"></div>
+
+<script type="module">
+  import { parseHocon } from 'https://unpkg.com/@tkint/hocon-parser?module';
+
+  const hocon = 'hello = "world"';
+  const parsed = parseHocon(hocon);
+
+  document.getElementById('result').innerHTML = JSON.stringify(parsed);
+</script>
+</body>
+</html>

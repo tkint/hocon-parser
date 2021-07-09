@@ -5,7 +5,7 @@ export default defineConfig({
   build: {
     target: 'esnext',
     lib: {
-      entry: resolve(__dirname, 'lib/main.js'),
+      entry: resolve(__dirname, 'lib/index.ts'),
       name: 'hocon-parser',
     },
   },

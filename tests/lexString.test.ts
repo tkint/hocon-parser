@@ -1,4 +1,4 @@
-const { lexString } = require('../lib/main');
+import { lexString } from '../lib';
 
 describe('lexString', () => {
   describe('OK', () => {

@@ -1,0 +1,16 @@
+{
+  "compilerOptions": {
+    "lib": [
+      "ESNext"
+    ],
+    "target": "ESNext",
+    "outDir": "dist/",
+    "emitDeclarationOnly": true,
+    "declaration": true,
+    "moduleResolution": "Node",
+    "esModuleInterop": true
+  },
+  "files": [
+    "lib/index.ts"
+  ]
+}

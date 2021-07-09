@@ -1,14 +1,16 @@
-const COLON_TOKEN = '__COLON__';
-const SEPARATOR_TOKEN = '__SEPARATOR__';
+export const TOKENS = {
+  COLON: '__COLON__',
+  SEPARATOR: '__SEPARATOR__',
+};
 
 const HOCON_COLON = [':', '='];
 const HOCON_FIELD_SEPARATOR = [',', '\n'];
 
-function parseHocon(hocon) {
+export function parseHocon(hocon: string) {
   return parseTokens(lexHocon(hocon));
 }
 
-function lexNumber(hocon) {
+export function lexNumber(hocon: string): [number | undefined, string] {
   let token = '';
   let _hocon = hocon;
 
@@ -26,7 +28,7 @@ function lexNumber(hocon) {
   return [Number(token), _hocon.substring(token.length)];
 }
 
-function lexString(hocon) {
+export function lexString(hocon: string): [string | undefined, string] {
   let token = '';
   let _hocon = hocon;
 
@@ -51,7 +53,7 @@ function lexString(hocon) {
   return [token, _hocon.substring(token.length)];
 }
 
-function lexHocon(hocon) {
+export function lexHocon(hocon: string): any[] {
   const tokens = [];
 
   let i = 0;
@@ -75,12 +77,12 @@ function lexHocon(hocon) {
     }
 
     if (HOCON_FIELD_SEPARATOR.includes(_hocon[0])) {
-      tokens.push(SEPARATOR_TOKEN);
+      tokens.push(TOKENS.SEPARATOR);
       _hocon = _hocon.substring(1);
     } else if (/\s/.test(_hocon[0])) {
       _hocon = _hocon.substring(1);
     } else if (HOCON_COLON.includes(_hocon[0])) {
-      tokens.push(COLON_TOKEN);
+      tokens.push(TOKENS.COLON);
       _hocon = _hocon.substring(1);
     } else {
       throw Error(`Unexpected character: ${_hocon[0]}`);
@@ -90,26 +92,26 @@ function lexHocon(hocon) {
   return tokens;
 }
 
-function parseTokens(tokens) {
-  const result = {};
+export function parseTokens(tokens: any[]) {
+  const result: any = {};
 
   let _tokens = tokens;
 
   // jump to the next key
-  while (_tokens[0] === SEPARATOR_TOKEN) {
+  while (_tokens[0] === TOKENS.SEPARATOR) {
     _tokens = _tokens.slice(1);
   }
 
   while (_tokens.length > 0) {
     const [key, colon, value] = _tokens;
 
-    if (key === COLON_TOKEN)
+    if (key === TOKENS.COLON)
       throw Error(`Invalid key: ${key}`);
 
-    if (colon !== COLON_TOKEN)
+    if (colon !== TOKENS.COLON)
       throw Error(`Expected colon after key \`${key}\`: ${colon}`);
 
-    if (value === COLON_TOKEN)
+    if (value === TOKENS.COLON)
       throw Error(`Invalid value for key \`${key}\`: ${value}`);
 
     if (value === undefined)
@@ -119,20 +121,10 @@ function parseTokens(tokens) {
     _tokens = _tokens.slice(3);
 
     // jump to the next key
-    while (_tokens[0] === SEPARATOR_TOKEN) {
+    while (_tokens[0] === TOKENS.SEPARATOR) {
       _tokens = _tokens.slice(1);
     }
   }
 
   return result;
 }
-
-module.exports = {
-  parseHocon,
-  parseTokens,
-  lexNumber,
-  lexString,
-  lexHocon,
-  COLON_TOKEN,
-  SEPARATOR_TOKEN,
-};
