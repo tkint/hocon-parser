@@ -10,6 +10,24 @@ export function parseHocon(hocon: string) {
   return parseTokens(lexHocon(hocon));
 }
 
+export function lexKeyword(hocon: string): [any | undefined, string] {
+  const keywords = [
+    null,
+    true,
+    false,
+  ];
+
+  for (const keyword of keywords) {
+    const strKeyword = String(keyword);
+    if (hocon.startsWith(strKeyword)
+      && (hocon.length === strKeyword.length || HOCON_FIELD_SEPARATOR.includes(hocon[strKeyword.length]))) {
+      return [keyword, hocon.substring(strKeyword.length)];
+    }
+  }
+
+  return [undefined, hocon];
+}
+
 export function lexNumber(hocon: string): [number | undefined, string] {
   let token = '';
   let _hocon = hocon;
@@ -65,6 +83,14 @@ export function lexHocon(hocon: string): any[] {
     _hocon = numResult[1];
     if (numToken !== undefined) {
       tokens.push(numToken);
+      continue;
+    }
+
+    const booleanResult = lexKeyword(_hocon);
+    const booleanToken = booleanResult[0];
+    _hocon = booleanResult[1];
+    if (booleanToken !== undefined) {
+      tokens.push(booleanToken);
       continue;
     }
 
