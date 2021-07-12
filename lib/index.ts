@@ -35,17 +35,21 @@ export function parseHocon(hocon: string) {
   const tokens = [TOKENS.OBJECT_OPEN, ...lexHocon(sanitized), TOKENS.OBJECT_CLOSE];
   const rawResult = parseTokens(tokens)[0];
 
+  const substitutionRegex = /__SUBSTITUTION\((\??[a-zA-Z0-9.]*)\)__/;
   Object.keys(rawResult).forEach((key) => {
     const value = rawResult[key];
-    switch (typeof value) {
-      case 'string':
-        const pathMatch = /^\${\??(.*)}$/.exec(value);
-        if (pathMatch && pathMatch.length > 1) {
-          const path = pathMatch[1];
-          rawResult[key] = deepFind(rawResult, path);
+    if (typeof value === 'string') {
+      const substitutionMatch = substitutionRegex.exec(value);
+      if (substitutionMatch && substitutionMatch.length > 1) {
+        const isOptional = substitutionMatch[1].startsWith('?');
+        const path = substitutionMatch[1].substring(isOptional ? 1 : 0);
+        const substitute = deepFind(rawResult, path);
+        if (substitute !== undefined) {
+          rawResult[key] = value.replace(substitutionRegex, substitute);
+        } else {
+          rawResult[key] = value.replace(substitutionRegex, `\${${substitutionMatch[1]}}`);
         }
-        break;
-      default:
+      }
     }
   });
 
@@ -62,20 +66,6 @@ export function deepFind(obj: any, path: string): any {
   }
 
   return current;
-}
-
-export function lexSubstitution(hocon: string): [string | undefined, string] {
-  let token = '';
-  let rest = hocon;
-
-  if (rest.substring(0, 2) !== '${') return [undefined, rest];
-
-  for (const char of rest) {
-    token = `${token}${char}`;
-    if (char === '}') return [token, rest.substring(token.length)];
-  }
-
-  throw Error('Expected end-of-substitution character');
 }
 
 export function lexKeyword(hocon: string): [any | undefined, string] {
@@ -116,33 +106,54 @@ export function lexNumber(hocon: string): [number | undefined, string] {
 
 export function lexString(hocon: string): [string | undefined, string] {
   let token = '';
+  let substitutionToken = '';
   let rest = hocon;
 
   let inQuotes = false;
+  let inSubstitution = false;
+  const substitutionPart = '__SUBSTITUTION({})__';
 
-  if (!/[a-zA-Z0-9"]/.test(rest[0])) return [undefined, rest];
+  if (!/[a-zA-Z0-9"$]/.test(rest[0])) return [undefined, rest];
 
-  for (const char of rest) {
-    if (char === '"') {
-      inQuotes = !inQuotes;
+  while (rest.length > 0) {
+    if (inQuotes) {
+      if (rest[0] === '"') inQuotes = false;
+      else token = `${token}${rest[0]}`;
       rest = rest.substring(1);
+    } else if (inSubstitution) {
+      if (!/[a-zA-Z0-9.}?]/.test(rest[0])) throw Error('Unexpected character in substitution');
+      if (substitutionToken !== '' && rest[0] === '?') throw Error('Substitution path invalid: question mark only available as first character');
+      if (substitutionToken.endsWith('.') && ['.', '}'].includes(rest[0])) throw Error('Substitution path invalid');
+      if (rest[0] === '}') {
+        inSubstitution = false;
+        token = `${token}${substitutionPart.replace('{}', substitutionToken)}`;
+        substitutionToken = '';
+      } else substitutionToken = `${substitutionToken}${rest[0]}`;
+      rest = rest.substring(1);
+    } else if (hoconChars.flatMap((it) => it.matches).includes(rest[0])) {
+      return [token, rest];
     } else {
-      if (!inQuotes && (hoconChars.flatMap((it) => it.matches).includes(char))) {
-        return [token, rest.substring(token.length)];
+      if (rest.substring(0, 2) === '${') {
+        inSubstitution = true;
+        rest = rest.substring(2);
       } else {
-        token = `${token}${char}`;
+        if (rest[0] === '"') inQuotes = true;
+        else token = `${token}${rest[0]}`;
+        rest = rest.substring(1);
       }
     }
   }
 
   if (inQuotes) throw Error('Expected end-of-string quote');
-  return [token, rest.substring(token.length)];
+  if (inSubstitution) throw Error('Expected end-of-substitution brace');
+
+  return [token, rest];
 }
 
 export function lexHocon(hocon: string): any[] {
   const tokens = [];
 
-  const lexers = [lexNumber, lexKeyword, lexString, lexSubstitution];
+  const lexers = [lexNumber, lexKeyword, lexString];
 
   let rest = hocon;
   let i = 0;

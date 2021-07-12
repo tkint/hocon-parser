@@ -5,4 +5,7 @@ module.exports = {
   d: 'ddd',
   e: ['eee'],
   f: 'eee',
+  g: '${z}',
+  h: '${?z}',
+  i: 'iii aaa',
 };

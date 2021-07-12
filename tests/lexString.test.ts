@@ -49,6 +49,18 @@ describe('lexString', () => {
       const expected = ['aaa', ',bbb'];
       expect(lexString(given)).toStrictEqual(expected);
     });
+
+    test('return reference when substitution', () => {
+      const given = '${a}';
+      const expected = ['__SUBSTITUTION(a)__', ''];
+      expect(lexString(given)).toStrictEqual(expected);
+    });
+
+    test('return reference when substitution with dots', () => {
+      const given = '${a.b.0}';
+      const expected = ['__SUBSTITUTION(a.b.0)__', ''];
+      expect(lexString(given)).toStrictEqual(expected);
+    });
   });
 
   describe('KO', () => {
