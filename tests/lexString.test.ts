@@ -52,13 +52,13 @@ describe('lexString', () => {
   });
 
   describe('KO', () => {
-    test('undefined when missing quoted end-of-string', () => {
+    test('error when missing quoted end-of-string', () => {
       const given = '"aaa';
       const expected = Error('Expected end-of-string quote');
       expect(() => lexString(given)).toThrow(expected);
     });
 
-    test('undefined when unexpected quote in free-string', () => {
+    test('error when unexpected quote in free-string', () => {
       const given = 'aa"a';
       const expected = Error('Expected end-of-string quote');
       expect(() => lexString(given)).toThrow(expected);

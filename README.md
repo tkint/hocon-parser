@@ -52,9 +52,9 @@ Not everything is yet implemented, but I plan to do so. Here is the current stat
 | String value | yes |
 | Number value | yes |
 | String concatenation | yes |
-| Boolean value | no |
-| Object value | no |
-| Array value | no |
-| Null value | no |
+| Boolean value | yes |
+| Object value | yes |
+| Array value | yes |
+| Null value | yes |
 | Object merge | no |
-| Reference | no |
+| Substitution | partial |

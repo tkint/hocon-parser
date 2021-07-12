@@ -1,6 +1,6 @@
 export const TOKENS = {
   COLON: '__COLON__',
-  SEPARATOR: '__SEPARATOR__',
+  COMMA: '__COMMA__',
   ARRAY_OPEN: '__ARRAY_OPEN__',
   ARRAY_CLOSE: '__ARRAY_CLOSE__',
   OBJECT_OPEN: '__OBJECT_OPEN__',
@@ -8,7 +8,7 @@ export const TOKENS = {
 };
 
 const HOCON_COLON = [':', '='];
-const HOCON_FIELD_SEPARATOR = [',', '\n'];
+const HOCON_COMMA = [',', '\n'];
 
 const hoconChars = [
   { token: TOKENS.ARRAY_OPEN, matches: ['['] },
@@ -16,12 +16,66 @@ const hoconChars = [
   { token: TOKENS.OBJECT_OPEN, matches: ['{'] },
   { token: TOKENS.OBJECT_CLOSE, matches: ['}'] },
   { token: TOKENS.COLON, matches: HOCON_COLON },
-  { token: TOKENS.SEPARATOR, matches: HOCON_FIELD_SEPARATOR },
+  { token: TOKENS.COMMA, matches: HOCON_COMMA },
 ];
 
+function isValidArrayValueToken(value: any) {
+  return !hoconChars.flatMap(c => c.token).includes(value)
+    || value === TOKENS.ARRAY_OPEN
+    || value === TOKENS.OBJECT_OPEN;
+}
+
+function isValidObjectKeyToken(key: any) {
+  return typeof key === 'string' && !hoconChars.flatMap(c => c.token).includes(key);
+}
 
 export function parseHocon(hocon: string) {
-  return parseTokens(lexHocon(hocon))[0];
+  const sanitized = hocon.replace(/\r\n/g, '\n');
+
+  const tokens = [TOKENS.OBJECT_OPEN, ...lexHocon(sanitized), TOKENS.OBJECT_CLOSE];
+  const rawResult = parseTokens(tokens)[0];
+
+  Object.keys(rawResult).forEach((key) => {
+    const value = rawResult[key];
+    switch (typeof value) {
+      case 'string':
+        const pathMatch = /^\${\??(.*)}$/.exec(value);
+        if (pathMatch && pathMatch.length > 1) {
+          const path = pathMatch[1];
+          rawResult[key] = deepFind(rawResult, path);
+        }
+        break;
+      default:
+    }
+  });
+
+  return rawResult;
+}
+
+export function deepFind(obj: any, path: string): any {
+  const pathArray = path.split('.');
+
+  let current = obj;
+  for (const pathItem of pathArray) {
+    if (!current[pathItem]) return undefined;
+    current = current[pathItem];
+  }
+
+  return current;
+}
+
+export function lexSubstitution(hocon: string): [string | undefined, string] {
+  let token = '';
+  let rest = hocon;
+
+  if (rest.substring(0, 2) !== '${') return [undefined, rest];
+
+  for (const char of rest) {
+    token = `${token}${char}`;
+    if (char === '}') return [token, rest.substring(token.length)];
+  }
+
+  throw Error('Expected end-of-substitution character');
 }
 
 export function lexKeyword(hocon: string): [any | undefined, string] {
@@ -34,7 +88,7 @@ export function lexKeyword(hocon: string): [any | undefined, string] {
   for (const keyword of keywords) {
     const strKeyword = String(keyword);
     if (hocon.startsWith(strKeyword)
-      && (hocon.length === strKeyword.length || HOCON_FIELD_SEPARATOR.includes(hocon[strKeyword.length]))) {
+      && (hocon.length === strKeyword.length || HOCON_COMMA.includes(hocon[strKeyword.length]))) {
       return [keyword, hocon.substring(strKeyword.length)];
     }
   }
@@ -44,37 +98,37 @@ export function lexKeyword(hocon: string): [any | undefined, string] {
 
 export function lexNumber(hocon: string): [number | undefined, string] {
   let token = '';
-  let _hocon = hocon;
+  let rest = hocon;
 
-  for (const char of _hocon) {
+  for (const char of rest) {
     if (/[0-9-.]/.test(char)) {
       token = `${token}${char}`;
-    } else if (HOCON_FIELD_SEPARATOR.includes(char)) {
-      if (token === '') return [undefined, _hocon];
+    } else if (HOCON_COMMA.includes(char)) {
+      if (token === '') return [undefined, rest];
       break;
     } else {
-      return [undefined, _hocon];
+      return [undefined, rest];
     }
   }
 
-  return [Number(token), _hocon.substring(token.length)];
+  return [Number(token), rest.substring(token.length)];
 }
 
 export function lexString(hocon: string): [string | undefined, string] {
   let token = '';
-  let _hocon = hocon;
+  let rest = hocon;
 
   let inQuotes = false;
 
-  if (!/[a-zA-Z0-9"]/.test(_hocon[0])) return [undefined, _hocon];
+  if (!/[a-zA-Z0-9"]/.test(rest[0])) return [undefined, rest];
 
-  for (const char of _hocon) {
+  for (const char of rest) {
     if (char === '"') {
       inQuotes = !inQuotes;
-      _hocon = _hocon.substring(1);
+      rest = rest.substring(1);
     } else {
       if (!inQuotes && (hoconChars.flatMap((it) => it.matches).includes(char))) {
-        return [token, _hocon.substring(token.length)];
+        return [token, rest.substring(token.length)];
       } else {
         token = `${token}${char}`;
       }
@@ -82,22 +136,22 @@ export function lexString(hocon: string): [string | undefined, string] {
   }
 
   if (inQuotes) throw Error('Expected end-of-string quote');
-  return [token, _hocon.substring(token.length)];
+  return [token, rest.substring(token.length)];
 }
 
 export function lexHocon(hocon: string): any[] {
   const tokens = [];
 
-  const lexers = [lexNumber, lexKeyword, lexString];
+  const lexers = [lexNumber, lexKeyword, lexString, lexSubstitution];
 
-  let _hocon = hocon;
+  let rest = hocon;
   let i = 0;
   let token: any;
   hoconLoop:
-    while (_hocon.length > 0 && i++ < hocon.length) {
+    while (rest.length > 0 && i++ < hocon.length) {
       token = undefined;
       for (const lexer of lexers) {
-        ([token, _hocon] = lexer(_hocon));
+        ([token, rest] = lexer(rest));
         if (token !== undefined) {
           switch (typeof token) {
             case 'string':
@@ -111,89 +165,82 @@ export function lexHocon(hocon: string): any[] {
       }
 
       for (const hoconChar of hoconChars) {
-        if (hoconChar.matches.includes(_hocon[0])) {
+        if (hoconChar.matches.includes(rest[0])) {
           tokens.push(hoconChar.token);
-          _hocon = _hocon.substring(1);
+          rest = rest.substring(1);
           continue hoconLoop;
         }
       }
 
-      if (/\s/.test(_hocon[0])) {
-        _hocon = _hocon.substring(1);
-        continue;
-      }
-
-      throw Error(`Unexpected character: ${_hocon[0]}`);
+      if (/\s/.test(rest[0])) rest = rest.substring(1);
     }
 
-  return [TOKENS.OBJECT_OPEN, ...tokens, TOKENS.OBJECT_CLOSE];
+  return tokens;
 }
 
 export function parseTokensAsArray(tokens: any[]): any[] {
-  const result = [];
-  let _tokens = tokens;
+  const result: any = [];
 
-  if (_tokens[0] === TOKENS.ARRAY_CLOSE) return [result, _tokens.slice(1)];
+  if (tokens[0] !== TOKENS.ARRAY_OPEN) throw Error(`Expected array opening token, got ${tokens[0]}`);
 
-  while (_tokens[0] === TOKENS.SEPARATOR) _tokens = _tokens.slice(1);
+  let rest = tokens.slice(1);
+  while (rest.length > 0) {
+    while (rest[0] === TOKENS.COMMA) rest = rest.slice(1);
 
-  while (_tokens.length > 0) {
-    const parseResult = parseTokens(_tokens);
-    const parsedTokens = parseResult[0];
-    _tokens = parseResult[1];
-    result.push(parsedTokens);
+    if (rest[0] === TOKENS.ARRAY_CLOSE) return [result, rest.slice(1)];
 
-    if (_tokens[0] === TOKENS.ARRAY_CLOSE) return [result, _tokens.slice(1)];
-    if (_tokens[0] !== TOKENS.SEPARATOR) throw Error('Expected comma in array');
+    if (!isValidArrayValueToken(rest[0]))
+      throw Error(`Invalid array value, got ${rest[0]}`);
 
-    _tokens = _tokens.slice(1);
-
-    while (_tokens[0] === TOKENS.SEPARATOR) _tokens = _tokens.slice(1);
+    const [parsedValue, newRest] = parseTokens(rest);
+    result.push(parsedValue);
+    rest = newRest;
   }
 
   throw Error('Expected end of array');
 }
 
-export function parseTokensAsObject(tokens: any[]): object {
+export function parseTokensAsObject(tokens: any[]): [object, any[]] {
   const result: any = {};
 
-  let _tokens = tokens;
+  if (tokens[0] !== TOKENS.OBJECT_OPEN) throw Error(`Expected object opening token, got ${tokens[0]}`);
 
-  if (_tokens[0] === TOKENS.OBJECT_CLOSE) return [result, _tokens.slice(1)];
+  let rest = tokens.slice(1);
+  while (rest.length > 0) {
+    while (rest[0] === TOKENS.COMMA) rest = rest.slice(1);
 
-  while (_tokens[0] === TOKENS.SEPARATOR) _tokens = _tokens.slice(1);
+    const [key, colon, ...value] = rest;
 
-  while (_tokens.length > 0) {
-    const [key, colon, ...value] = _tokens;
-    if (key === TOKENS.COLON) throw Error(`Invalid key: ${key}`);
-    if (key === TOKENS.OBJECT_CLOSE) return [result, _tokens.slice(1)];
+    if (key === TOKENS.OBJECT_CLOSE) return [result, rest.slice(1)];
 
-    if (colon !== TOKENS.COLON) throw Error(`Expected colon after key \`${key}\`: ${colon}`);
+    if (!isValidObjectKeyToken(key))
+      throw Error(`Expected string as key, got ${key}`);
 
-    const parseResult = parseTokens(value);
-    const parsedTokens = parseResult[0];
-    _tokens = parseResult[1];
-    result[key] = parsedTokens;
+    if (colon !== TOKENS.COLON)
+      throw Error(`Expected colon, got ${colon}`);
 
-    if (_tokens[0] === TOKENS.OBJECT_CLOSE) return [result, _tokens.slice(1)];
-    if (_tokens[0] !== TOKENS.SEPARATOR) throw Error(`Expected comma in object, got ${_tokens[0]}`);
-
-    _tokens = _tokens.slice(1);
-
-    // jump to the next key
-    while (_tokens[0] === TOKENS.SEPARATOR) _tokens = _tokens.slice(1);
+    const [parsedValue, newRest] = parseTokens(value);
+    result[key] = parsedValue;
+    rest = newRest;
   }
 
   throw Error('Expected end of object');
 }
 
-export function parseTokens(tokens: any[]): any[] | object {
-  switch (tokens[0]) {
-    case TOKENS.ARRAY_OPEN:
-      return parseTokensAsArray(tokens.slice(1));
-    case TOKENS.OBJECT_OPEN:
-      return parseTokensAsObject(tokens.slice(1));
-    default:
-      return [tokens[0], tokens.slice(1)];
+export function parseTokens(tokens: any[]) {
+  let result: any;
+  let rest = tokens;
+  if (rest[0] === TOKENS.ARRAY_OPEN) {
+    const [arr, newRest] = parseTokensAsArray(rest);
+    result = arr;
+    rest = newRest;
+  } else if (rest[0] === TOKENS.OBJECT_OPEN) {
+    const [obj, newRest] = parseTokensAsObject(rest);
+    result = obj;
+    rest = newRest;
+  } else {
+    result = rest[0];
+    rest = rest.slice(1);
   }
+  return [result, rest];
 }

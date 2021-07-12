@@ -1,97 +1,84 @@
-import { parseTokensAsObject, TOKENS } from '../lib';
+import { parseTokens, TOKENS } from '../lib';
 
 describe('parseTokens', () => {
-  describe('OK', () => {
-    test('parse one set of tokens', () => {
-      const given = ['hello', TOKENS.COLON, 'world', TOKENS.OBJECT_CLOSE];
-      const expected = [{ hello: 'world' }, []];
-      expect(parseTokensAsObject(given)).toStrictEqual(expected);
-    });
-
-    test('parse one set of tokens when extra separator', () => {
-      const given = [
-        'hello', TOKENS.COLON, 'world',
-        TOKENS.SEPARATOR,
-        TOKENS.OBJECT_CLOSE,
-      ];
-      const expected = [{ hello: 'world' }, []];
-      expect(parseTokensAsObject(given)).toStrictEqual(expected);
-    });
-
-    test('parse multiple set of tokens', () => {
-      const given = [
-        'hello', TOKENS.COLON, 'world',
-        TOKENS.SEPARATOR,
-        'foo', TOKENS.COLON, 'bar',
-        TOKENS.OBJECT_CLOSE,
-      ];
-      const expected = [{ hello: 'world', foo: 'bar' }, []];
-      expect(parseTokensAsObject(given)).toStrictEqual(expected);
-    });
-
-    test('parse multiple set of tokens with extra separators', () => {
-      const given = [
-        'hello', TOKENS.COLON, 'world',
-        TOKENS.SEPARATOR,
-        TOKENS.SEPARATOR,
-        TOKENS.SEPARATOR,
-        TOKENS.SEPARATOR,
-        'foo', TOKENS.COLON, 'bar',
-        TOKENS.SEPARATOR,
-        TOKENS.SEPARATOR,
-        TOKENS.SEPARATOR,
-        TOKENS.OBJECT_CLOSE,
-      ];
-      const expected = [{ hello: 'world', foo: 'bar' }, []];
-      expect(parseTokensAsObject(given)).toStrictEqual(expected);
-    });
-
-    test('parse one set of tokens with leading separators', () => {
-      const given = [
-        TOKENS.SEPARATOR,
-        TOKENS.SEPARATOR,
-        'hello', TOKENS.COLON, 'world',
-        TOKENS.OBJECT_CLOSE,
-      ];
-      const expected = [{ hello: 'world' }, []];
-      expect(parseTokensAsObject(given)).toStrictEqual(expected);
-    });
-
-    test('parse multiple set of tokens with override', () => {
-      const given = [
-        'hello', TOKENS.COLON, 'world',
-        TOKENS.SEPARATOR,
-        'hello', TOKENS.COLON, 'le monde',
-        TOKENS.OBJECT_CLOSE,
-      ];
-      const expected = [{ hello: 'le monde' }, []];
-      expect(parseTokensAsObject(given)).toStrictEqual(expected);
-    });
+  test('parse object', () => {
+    const given = [TOKENS.OBJECT_OPEN, 'hello', TOKENS.COLON, 'world', TOKENS.OBJECT_CLOSE];
+    const expected = [{ hello: 'world' }, []];
+    expect(parseTokens(given)).toStrictEqual(expected);
   });
 
-  describe.skip('KO', () => {
-    test('error when key is TOKENS.COLON', () => {
-      const given = [TOKENS.COLON, TOKENS.COLON, 'world', TOKENS.OBJECT_CLOSE];
-      const expected = Error(`Invalid key: ${TOKENS.COLON}`);
-      expect(() => parseTokensAsObject(given)).toThrow(expected);
-    });
+  test('parse array', () => {
+    const given = [TOKENS.ARRAY_OPEN, 'hello', TOKENS.COMMA, 'world', TOKENS.ARRAY_CLOSE];
+    const expected = [['hello', 'world'], []];
+    expect(parseTokens(given)).toStrictEqual(expected);
+  });
 
-    test('error when colon is not TOKENS.COLON', () => {
-      const given = ['hello', 'bad_token', 'world', TOKENS.OBJECT_CLOSE];
-      const expected = Error('Expected colon after key `hello`: bad_token');
-      expect(() => parseTokensAsObject(given)).toThrow(expected);
-    });
+  test('parse array of objects', () => {
+    const given = [
+      TOKENS.ARRAY_OPEN,
+      TOKENS.OBJECT_OPEN,
+      'b',
+      TOKENS.COLON,
+      'bbb',
+      TOKENS.OBJECT_CLOSE,
+      TOKENS.COMMA,
+      TOKENS.OBJECT_OPEN,
+      'c',
+      TOKENS.COLON,
+      'ccc',
+      TOKENS.OBJECT_CLOSE,
+      TOKENS.ARRAY_CLOSE,
+    ];
+    const expected = [[{ b: 'bbb' }, { c: 'ccc' }], []];
+    expect(parseTokens(given)).toStrictEqual(expected);
+  });
 
-    test('error when value is TOKENS.COLON', () => {
-      const given = ['hello', TOKENS.COLON, TOKENS.COLON, TOKENS.OBJECT_CLOSE];
-      const expected = Error(`Invalid value for key \`hello\`: ${TOKENS.COLON}`);
-      expect(() => parseTokensAsObject(given)).toThrow(expected);
-    });
+  test('parse array of objects with extra commas', () => {
+    const given = [
+      TOKENS.ARRAY_OPEN,
+      TOKENS.COMMA,
+      TOKENS.OBJECT_OPEN,
+      'b',
+      TOKENS.COLON,
+      'bbb',
+      TOKENS.COMMA,
+      TOKENS.OBJECT_CLOSE,
+      TOKENS.COMMA,
+      TOKENS.COMMA,
+      TOKENS.OBJECT_OPEN,
+      'c',
+      TOKENS.COLON,
+      'ccc',
+      TOKENS.COMMA,
+      TOKENS.OBJECT_CLOSE,
+      TOKENS.COMMA,
+      TOKENS.ARRAY_CLOSE,
+    ];
+    const expected = [[{ b: 'bbb' }, { c: 'ccc' }], []];
+    expect(parseTokens(given)).toStrictEqual(expected);
+  });
 
-    test('error when value is undefined', () => {
-      const given = ['hello', TOKENS.COLON, TOKENS.OBJECT_CLOSE];
-      const expected = Error('Expected value after colon for key `hello`: undefined');
-      expect(() => parseTokensAsObject(given)).toThrow(expected);
-    });
+  test('parse array of objects in object', () => {
+    const given = [
+      TOKENS.OBJECT_OPEN,
+      'a',
+      TOKENS.COLON,
+      TOKENS.ARRAY_OPEN,
+      TOKENS.OBJECT_OPEN,
+      'b',
+      TOKENS.COLON,
+      'bbb',
+      TOKENS.OBJECT_CLOSE,
+      TOKENS.COMMA,
+      TOKENS.OBJECT_OPEN,
+      'c',
+      TOKENS.COLON,
+      'ccc',
+      TOKENS.OBJECT_CLOSE,
+      TOKENS.ARRAY_CLOSE,
+      TOKENS.OBJECT_CLOSE,
+    ];
+    const expected = [{ a: [{ b: 'bbb' }, { c: 'ccc' }] }, []];
+    expect(parseTokens(given)).toStrictEqual(expected);
   });
 });
