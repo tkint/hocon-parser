@@ -72,6 +72,29 @@ describe('parseTokensAsObject', () => {
       const expected = [{ hello: 'le monde' }, []];
       expect(parseTokensAsObject(given)).toStrictEqual(expected);
     });
+
+    test('parse array value', () => {
+      const given = [
+        TOKENS.OBJECT_OPEN,
+        'hello', TOKENS.COLON,
+        TOKENS.ARRAY_OPEN, 'world', TOKENS.ARRAY_CLOSE,
+        TOKENS.OBJECT_CLOSE,
+      ];
+      const expected = [{ hello: ['world'] }, []];
+      expect(parseTokensAsObject(given)).toStrictEqual(expected);
+    });
+
+    test('merge arrays value', () => {
+      const given = [
+        TOKENS.OBJECT_OPEN,
+        'hello', TOKENS.COLON,
+        TOKENS.ARRAY_OPEN, 'world', TOKENS.ARRAY_CLOSE,
+        TOKENS.ARRAY_OPEN, 'le monde', TOKENS.ARRAY_CLOSE,
+        TOKENS.OBJECT_CLOSE,
+      ];
+      const expected = [{ hello: ['world', 'le monde'] }, []];
+      expect(parseTokensAsObject(given)).toStrictEqual(expected);
+    });
   });
 
   describe('KO', () => {

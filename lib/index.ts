@@ -216,23 +216,49 @@ export function parseTokensAsObject(tokens: any[]): [object, any[]] {
 
   if (tokens[0] !== TOKENS.OBJECT_OPEN) throw Error(`Expected object opening token, got ${tokens[0]}`);
 
+  let isLastValueArray = false;
+  let isLastValueObject = false;
+  let lastKey = undefined;
+
   let rest = tokens.slice(1);
   while (rest.length > 0) {
     while (rest[0] === TOKENS.COMMA) rest = rest.slice(1);
 
-    const [key, colon, ...value] = rest;
+    let parsedValue, newRest;
+    const key = rest[0];
+    switch (key) {
+      case TOKENS.OBJECT_CLOSE:
+        return [result, rest.slice(1)];
+      case TOKENS.ARRAY_OPEN:
+        if (isLastValueObject) throw Error('Cannot concatenate array with object');
+        if (!isLastValueArray) throw Error('Cannot concatenate array with string or number');
+        ([parsedValue, newRest] = parseTokensAsArray(rest));
+        result[lastKey] = Array.from(result[lastKey]).concat(parsedValue);
+        rest = newRest;
+        break;
+      case TOKENS.OBJECT_OPEN:
+        if (isLastValueArray) throw Error('Cannot concatenate object with array');
+        if (!isLastValueObject) throw Error('Cannot concatenate object with string or number');
+        ([parsedValue, newRest] = parseTokensAsObject(rest));
+        result[lastKey] = Object.assign(result[lastKey], parsedValue);
+        rest = newRest;
+        break;
+      default:
+        if (!isValidObjectKeyToken(key)) throw Error(`Expected string as key, got ${key}`);
+        rest = rest.slice(1);
 
-    if (key === TOKENS.OBJECT_CLOSE) return [result, rest.slice(1)];
+        if (rest[0] !== TOKENS.COLON) throw Error(`Expected colon, got ${rest[0]}`);
+        rest = rest.slice(1);
 
-    if (!isValidObjectKeyToken(key))
-      throw Error(`Expected string as key, got ${key}`);
+        isLastValueArray = rest[0] === TOKENS.ARRAY_OPEN;
+        isLastValueObject = rest[0] === TOKENS.OBJECT_OPEN;
 
-    if (colon !== TOKENS.COLON)
-      throw Error(`Expected colon, got ${colon}`);
-
-    const [parsedValue, newRest] = parseTokens(value);
-    result[key] = parsedValue;
-    rest = newRest;
+        ([parsedValue, newRest] = parseTokens(rest));
+        result[key] = parsedValue;
+        lastKey = key;
+        rest = newRest;
+        break;
+    }
   }
 
   throw Error('Expected end of object');
