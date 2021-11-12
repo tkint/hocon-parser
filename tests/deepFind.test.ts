@@ -25,6 +25,12 @@ describe('deepFind', () => {
       const path = 'a.0';
       expect(deepFind(obj, path)).toBe('aaa');
     });
+
+    it('return element when found as number', () => {
+      const obj = { a: 10 };
+      const path = 'a';
+      expect(deepFind(obj, path)).toBe(10);
+    });
   });
 
   describe('OK', () => {

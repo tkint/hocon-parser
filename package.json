@@ -19,14 +19,14 @@
   },
   "repository": {
     "type": "git",
-    "url": "https://gitlab.com/tkint/hocon-parser.git"
+    "url": "https://github.com/tkint/hocon-parser.git"
   },
   "author": "tkint",
   "license": "ISC",
   "bugs": {
-    "url": "https://gitlab.com/tkint/hocon-parser/issues"
+    "url": "https://github.com/tkint/hocon-parser/issues"
   },
-  "homepage": "https://gitlab.com/tkint/hocon-parser",
+  "homepage": "https://github.com/tkint/hocon-parser",
   "scripts": {
     "test": "jest tests --coverage",
     "build": "vite build && tsc -p tsconfig.json"

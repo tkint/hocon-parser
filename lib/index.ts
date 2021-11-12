@@ -46,6 +46,9 @@ export function parseHocon(hocon: string) {
         const substitute = deepFind(rawResult, path);
         if (substitute !== undefined) {
           rawResult[key] = value.replace(substitutionRegex, substitute);
+          if (rawResult[key] == substitute) {
+            rawResult[key] = substitute;
+          }
         } else {
           rawResult[key] = value.replace(substitutionRegex, `\${${substitutionMatch[1]}}`);
         }
@@ -109,14 +112,18 @@ export function lexString(hocon: string): [string | undefined, string] {
   let substitutionToken = '';
   let rest = hocon;
 
+  let inComment = false;
   let inQuotes = false;
   let inSubstitution = false;
   const substitutionPart = '__SUBSTITUTION({})__';
 
-  if (!/[a-zA-Z0-9"$]/.test(rest[0])) return [undefined, rest];
+  if (!/[a-zA-Z0-9"$#/]/.test(rest[0])) return [undefined, rest];
 
   while (rest.length > 0) {
-    if (inQuotes) {
+    if (inComment) {
+      if (rest[0] === '\n') inComment = false;
+      rest = rest.substring(1);
+    } else if (inQuotes) {
       if (rest[0] === '"') inQuotes = false;
       else token = `${token}${rest[0]}`;
       rest = rest.substring(1);
@@ -132,15 +139,17 @@ export function lexString(hocon: string): [string | undefined, string] {
       rest = rest.substring(1);
     } else if (hoconChars.flatMap((it) => it.matches).includes(rest[0])) {
       return [token, rest];
+    } else if (rest[0] === '#' || rest.substring(0, 2) === '//') {
+      inComment = true;
+      if (rest[0] === '#') rest = rest.substring(1);
+      else rest = rest.substring(2);
+    } else if (rest.substring(0, 2) === '${') {
+      inSubstitution = true;
+      rest = rest.substring(2);
     } else {
-      if (rest.substring(0, 2) === '${') {
-        inSubstitution = true;
-        rest = rest.substring(2);
-      } else {
-        if (rest[0] === '"') inQuotes = true;
-        else token = `${token}${rest[0]}`;
-        rest = rest.substring(1);
-      }
+      if (rest[0] === '"') inQuotes = true;
+      else token = `${token}${rest[0]}`;
+      rest = rest.substring(1);
     }
   }
 
@@ -159,32 +168,32 @@ export function lexHocon(hocon: string): any[] {
   let i = 0;
   let token: any;
   hoconLoop:
-    while (rest.length > 0 && i++ < hocon.length) {
-      token = undefined;
-      for (const lexer of lexers) {
-        ([token, rest] = lexer(rest));
-        if (token !== undefined) {
-          switch (typeof token) {
-            case 'string':
-              tokens.push(token.trim());
-              break;
-            default:
-              tokens.push(token);
-          }
-          continue hoconLoop;
+  while (rest.length > 0 && i++ < hocon.length) {
+    token = undefined;
+    for (const lexer of lexers) {
+      ([token, rest] = lexer(rest));
+      if (token !== undefined) {
+        switch (typeof token) {
+          case 'string':
+            tokens.push(token.trim());
+            break;
+          default:
+            tokens.push(token);
         }
+        continue hoconLoop;
       }
-
-      for (const hoconChar of hoconChars) {
-        if (hoconChar.matches.includes(rest[0])) {
-          tokens.push(hoconChar.token);
-          rest = rest.substring(1);
-          continue hoconLoop;
-        }
-      }
-
-      if (/\s/.test(rest[0])) rest = rest.substring(1);
     }
+
+    for (const hoconChar of hoconChars) {
+      if (hoconChar.matches.includes(rest[0])) {
+        tokens.push(hoconChar.token);
+        rest = rest.substring(1);
+        continue hoconLoop;
+      }
+    }
+
+    if (/\s/.test(rest[0])) rest = rest.substring(1);
+  }
 
   return tokens;
 }
