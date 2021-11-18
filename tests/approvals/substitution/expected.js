@@ -8,4 +8,6 @@ module.exports = {
   g: '${z}',
   h: '${?z}',
   i: 'iii aaa',
+  j: 10,
+  k: 10,
 };

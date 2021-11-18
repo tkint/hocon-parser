@@ -2,7 +2,6 @@
 [![codecov](https://codecov.io/gh/tkint/hocon-parser/branch/main/graph/badge.svg?token=GFYBM9AKJZ)](https://codecov.io/gh/tkint/hocon-parser)
 [![npm](https://img.shields.io/npm/v/@tkint/hocon-parser)](https://www.npmjs.com/package/@tkint/hocon-parser)
 
-
 # hocon-parser
 
 Javascript library to parse [HOCON (Human-Optimized Config Object Notation)](https://github.com/lightbend/config)
@@ -59,3 +58,4 @@ Not everything is yet implemented, but I plan to do so. Here is the current stat
 | Null value | yes |
 | Object merge | no |
 | Substitution | partial |
+| Comments | yes |

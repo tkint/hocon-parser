@@ -61,6 +61,18 @@ describe('lexString', () => {
       const expected = ['__SUBSTITUTION(a.b.0)__', ''];
       expect(lexString(given)).toStrictEqual(expected);
     });
+
+    test('return undefined when commented string 1', () => {
+      const given = '# aaa';
+      const expected = ['', ''];
+      expect(lexString(given)).toStrictEqual(expected);
+    });
+
+    test('return undefined when commented string 2', () => {
+      const given = '// aaa';
+      const expected = ['', ''];
+      expect(lexString(given)).toStrictEqual(expected);
+    });
   });
 
   describe('KO', () => {
