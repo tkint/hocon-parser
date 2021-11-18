@@ -1,4 +1,6 @@
 [![License: ISC](https://img.shields.io/badge/License-ISC-blue.svg)](https://opensource.org/licenses/ISC)
+[![codecov](https://codecov.io/gh/tkint/hocon-parser/branch/main/graph/badge.svg?token=GFYBM9AKJZ)](https://codecov.io/gh/tkint/hocon-parser)
+[![npm](https://img.shields.io/npm/v/@tkint/hocon-parser)](https://www.npmjs.com/package/@tkint/hocon-parser)
 
 # hocon-parser
 
